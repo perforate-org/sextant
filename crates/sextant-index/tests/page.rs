@@ -112,7 +112,7 @@ fn headers_fail_closed() {
     assert!(header.set_run_count(2).is_ok());
     assert_eq!(header.run_count(), 2);
     for error in [HeaderError::ZeroCapacity, HeaderError::SpanOverflow] {
-        assert!(!error.to_string().is_empty());
+        assert_ne!(error.to_string(), "");
     }
 }
 

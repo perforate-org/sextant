@@ -6,7 +6,6 @@
     clippy::float_arithmetic,
     clippy::as_conversions,
     clippy::cast_possible_wrap,
-    clippy::float_cmp,
     clippy::indexing_slicing,
     reason = "reference sums in f64 over small generated inputs; exact values by hand"
 )]
