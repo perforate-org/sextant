@@ -33,11 +33,12 @@ test:
 kani:
     cargo kani -p {{crate}}
 
-# Every surviving mutant is a test the suite is missing.
+# Every surviving mutant is a test the suite is missing. All features, so the
+# ic-stable-structures impl is built and tested too.
 # A timed-out mutant hung the suite, so the tests noticed it: only a missed one (exit 2) fails.
 mutants:
     #!/usr/bin/env bash
-    cargo mutants -p {{crate}} --test-tool cargo || [ $? -eq 3 ]
+    cargo mutants -p {{crate}} --test-tool cargo --all-features || [ $? -eq 3 ]
 
 # Duplication and complexity (thresholds in `.qlty/qlty.toml`). `qlty smells` exits 0 even with
 # findings, so the gate counts the SARIF results and prints them before failing.

@@ -60,4 +60,4 @@ jobs:
         with:
           tool: cargo-mutants
       # Exit 3 is timeouts only: those mutants hung the suite, so the tests noticed them.
-      - run: cargo mutants -p sextant-index --test-tool cargo || [ $? -eq 3 ]
+      - run: cargo mutants -p sextant-index --test-tool cargo --all-features || [ $? -eq 3 ]
