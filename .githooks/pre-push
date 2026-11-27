@@ -1,0 +1,5 @@
+#!/bin/sh
+# The whole gate before anything leaves the machine, so CI does not fail on what it checks.
+# Enable with `just hooks`.
+set -e
+just gate

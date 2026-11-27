@@ -1,0 +1,21 @@
+# Thresholds for the lints enabled in `[workspace.lints]` (Cargo.toml).
+
+# Any `bool` parameter or field is a two-variant enum without a name. Predicates that *return*
+# `bool` (`is_empty`) are unaffected.
+max-fn-params-bools = 0
+max-struct-bools = 0
+
+# Tests may assert with `unwrap`/`expect`/indexing/panics; library code may not.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-dbg-in-tests = true
+
+# Newtypes over long positional argument lists; small functions keep the rest reviewable.
+too-many-arguments-threshold = 5
+cognitive-complexity-threshold = 15
+excessive-nesting-threshold = 4
+
+# Proper names in the docs, not code.
+doc-valid-idents = ["RaBitQ", "HARMONY", ".."]

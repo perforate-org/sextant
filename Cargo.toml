@@ -1,0 +1,88 @@
+[workspace]
+resolver = "2"
+members = ["crates/sextant-index"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+# Workspace lints; every crate opts in with `[lints] workspace = true`.
+#
+# The set is the union of lara-graph's and Kurator's, so the crate passes either project's gate.
+# Every rule here enforces one of the project rules:
+#   [types]   behaviour is specified by types (structs, enums, newtypes), not by raw integers,
+#             strings or flags
+#   [encap]   encapsulation: nothing internal leaks, every public item is deliberate
+#   [total]   library code never panics: no unwrap, indexing, slicing or unchecked arithmetic
+#   [nostd]   the core stays `no_std` + `alloc`
+#   [explain] every exception is local, visible and justified
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"                  # [encap] every public item is deliberate
+missing_debug_implementations = "deny"
+unreachable_pub = "deny"               # [encap] `pub` only where it is actually exported
+unused_qualifications = "deny"
+unused_results = "deny"
+unused_lifetimes = "deny"
+trivial_casts = "deny"
+trivial_numeric_casts = "deny"
+single_use_lifetimes = "deny"
+let_underscore_drop = "deny"
+redundant_lifetimes = "deny"
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(kani)"] }
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[workspace.lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+multiple_crate_versions = "allow"      # dev-dependencies pull duplicates we cannot control
+# `unreachable_pub` already governs visibility; `pub(crate)` would contradict it.
+redundant_pub_crate = "allow"
+module_name_repetitions = "allow"
+# [encap] A module is one file named after it, never `mod.rs`.
+mod_module_files = "deny"
+# [encap] Public types keep private fields and grow without breaking callers.
+field_scoped_visibility_modifiers = "deny"
+exhaustive_enums = "deny"
+exhaustive_structs = "deny"
+partial_pub_fields = "deny"
+pub_underscore_fields = "deny"
+pub_without_shorthand = "deny"
+multiple_inherent_impl = "deny"
+same_name_method = "deny"
+# [types] `bool` parameters and fields are unnamed enums (thresholds in clippy.toml are zero).
+fn_params_excessive_bools = "deny"
+struct_excessive_bools = "deny"
+str_to_string = "deny"
+inefficient_to_string = "deny"
+# [types] A new enum variant must be handled deliberately at every match.
+wildcard_enum_match_arm = "deny"
+match_wildcard_for_single_variants = "deny"
+# [total] Failures are typed errors, not panics.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+panic_in_result_fn = "deny"
+unwrap_in_result = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+string_slice = "deny"
+arithmetic_side_effects = "deny"
+as_conversions = "deny"
+cast_lossless = "deny"
+cast_possible_truncation = "deny"
+cast_sign_loss = "deny"
+cast_possible_wrap = "deny"
+integer_division = "deny"
+float_arithmetic = "deny"
+# [nostd]
+std_instead_of_core = "deny"
+std_instead_of_alloc = "deny"
+alloc_instead_of_core = "deny"
+# [explain] `#[expect(..., reason = "...")]` instead of a silent `#[allow]`.
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+mem_forget = "deny"

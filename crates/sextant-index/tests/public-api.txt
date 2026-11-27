@@ -1,0 +1,188 @@
+pub mod sextant_index
+#[non_exhaustive] pub enum sextant_index::HeaderError
+pub sextant_index::HeaderError::BadMagic
+pub sextant_index::HeaderError::BadMagic::expected: [u8; 3]
+pub sextant_index::HeaderError::BadMagic::found: [u8; 3]
+pub sextant_index::HeaderError::InvalidCodeStride
+pub sextant_index::HeaderError::InvalidCodeStride::found: u32
+pub sextant_index::HeaderError::InvalidMetaStride
+pub sextant_index::HeaderError::InvalidMetaStride::found: u32
+pub sextant_index::HeaderError::InvalidRowStride
+pub sextant_index::HeaderError::InvalidRowStride::found: u32
+pub sextant_index::HeaderError::InvalidRunCapacity
+pub sextant_index::HeaderError::InvalidRunCapacity::found: u32
+pub sextant_index::HeaderError::RunCountExceedsCapacity
+pub sextant_index::HeaderError::RunCountExceedsCapacity::run_capacity: u32
+pub sextant_index::HeaderError::RunCountExceedsCapacity::run_count: u32
+pub sextant_index::HeaderError::SpanOverflow
+pub sextant_index::HeaderError::UnsupportedVersion
+pub sextant_index::HeaderError::UnsupportedVersion::found: u8
+pub sextant_index::HeaderError::ZeroCapacity
+impl core::convert::From<sextant_index::HeaderError> for sextant_index::SlabError
+pub fn sextant_index::SlabError::from(sextant_index::HeaderError) -> Self
+impl core::error::Error for sextant_index::HeaderError
+impl core::fmt::Display for sextant_index::HeaderError
+pub fn sextant_index::HeaderError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+#[non_exhaustive] pub enum sextant_index::MetaStride
+pub sextant_index::MetaStride::Aux4
+pub sextant_index::MetaStride::Aux8
+pub sextant_index::MetaStride::Bare
+impl sextant_index::MetaStride
+pub const fn sextant_index::MetaStride::aux_bytes(self) -> usize
+pub const fn sextant_index::MetaStride::bytes(self) -> u32
+pub const fn sextant_index::MetaStride::for_aux(usize) -> core::option::Option<Self>
+pub const fn sextant_index::MetaStride::from_bytes(u32) -> core::result::Result<Self, sextant_index::HeaderError>
+#[non_exhaustive] pub enum sextant_index::PayloadError
+pub sextant_index::PayloadError::BadSliceLength
+pub sextant_index::PayloadError::BadSliceLength::expected: usize
+pub sextant_index::PayloadError::BadSliceLength::found: usize
+pub sextant_index::PayloadError::ReservedBitSet
+pub sextant_index::PayloadError::ReservedBitSet::raw: u32
+impl core::error::Error for sextant_index::PayloadError
+impl core::fmt::Display for sextant_index::PayloadError
+pub fn sextant_index::PayloadError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+#[non_exhaustive] pub enum sextant_index::SlabError
+pub sextant_index::SlabError::Grow(sextant_index::GrowFailed)
+pub sextant_index::SlabError::Header(sextant_index::HeaderError)
+pub sextant_index::SlabError::TailOutOfBounds
+pub sextant_index::SlabError::TailOutOfBounds::memory_len: u64
+pub sextant_index::SlabError::TailOutOfBounds::tail: u64
+pub sextant_index::SlabError::TailOverflow
+impl core::convert::From<sextant_index::GrowFailed> for sextant_index::SlabError
+pub fn sextant_index::SlabError::from(sextant_index::GrowFailed) -> Self
+impl core::convert::From<sextant_index::HeaderError> for sextant_index::SlabError
+pub fn sextant_index::SlabError::from(sextant_index::HeaderError) -> Self
+impl core::error::Error for sextant_index::SlabError
+impl core::fmt::Display for sextant_index::SlabError
+pub fn sextant_index::SlabError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct sextant_index::DotBound<'a>
+impl<'a> sextant_index::DotBound<'a>
+pub const fn sextant_index::DotBound<'a>::new(&'a [f32], f32, f32) -> Self
+pub const fn sextant_index::DotBound<'a>::unit(&'a [f32], f32) -> Self
+pub struct sextant_index::F32Row<'a>(_)
+impl sextant_index::F32Row<'_>
+pub fn sextant_index::F32Row<'_>::dot(self, &[f32]) -> f32
+pub fn sextant_index::F32Row<'_>::dot_reaching(self, &[f32], sextant_index::DotBound<'_>) -> core::option::Option<f32>
+pub fn sextant_index::F32Row<'_>::l2_squared(self, &[f32]) -> f32
+pub fn sextant_index::F32Row<'_>::l2_squared_within(self, &[f32], f32) -> core::option::Option<f32>
+impl<'a> sextant_index::F32Row<'a>
+pub fn sextant_index::F32Row<'a>::dot_and_norm2(self, &[f32]) -> (f32, f32)
+pub const fn sextant_index::F32Row<'a>::new(&'a [u8]) -> Self
+pub struct sextant_index::GrowFailed
+impl sextant_index::GrowFailed
+pub const fn sextant_index::GrowFailed::current_pages(&self) -> u64
+pub const fn sextant_index::GrowFailed::new(u64, u64) -> Self
+pub const fn sextant_index::GrowFailed::requested_pages(&self) -> u64
+impl core::convert::From<sextant_index::GrowFailed> for sextant_index::SlabError
+pub fn sextant_index::SlabError::from(sextant_index::GrowFailed) -> Self
+impl core::error::Error for sextant_index::GrowFailed
+impl core::fmt::Display for sextant_index::GrowFailed
+pub fn sextant_index::GrowFailed::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct sextant_index::I8Row<'a>(_)
+impl sextant_index::I8Row<'_>
+pub fn sextant_index::I8Row<'_>::dot(self, &[f32]) -> f32
+pub fn sextant_index::I8Row<'_>::dot_reaching(self, &[f32], sextant_index::DotBound<'_>) -> core::option::Option<f32>
+pub fn sextant_index::I8Row<'_>::l2_squared(self, &[f32]) -> f32
+pub fn sextant_index::I8Row<'_>::l2_squared_within(self, &[f32], f32) -> core::option::Option<f32>
+impl<'a> sextant_index::I8Row<'a>
+pub fn sextant_index::I8Row<'a>::new(&'a [u8], f32) -> Self
+pub struct sextant_index::PageHeader
+impl sextant_index::PageHeader
+pub const fn sextant_index::PageHeader::capacity(&self) -> u32
+pub const fn sextant_index::PageHeader::code_stride(&self) -> u32
+pub fn sextant_index::PageHeader::from_bytes(&[u8; 32]) -> core::result::Result<Self, sextant_index::HeaderError>
+pub const fn sextant_index::PageHeader::meta_stride(&self) -> sextant_index::MetaStride
+pub fn sextant_index::PageHeader::new(u32, u32, sextant_index::MetaStride, u32) -> core::result::Result<Self, sextant_index::HeaderError>
+pub const fn sextant_index::PageHeader::row_stride(&self) -> u32
+pub const fn sextant_index::PageHeader::run_capacity(&self) -> u32
+pub const fn sextant_index::PageHeader::run_count(&self) -> u32
+pub const fn sextant_index::PageHeader::set_run_count(&mut self, u32) -> core::result::Result<(), sextant_index::HeaderError>
+pub fn sextant_index::PageHeader::to_bytes(&self) -> [u8; 32]
+pub fn sextant_index::PageHeader::with_code_stride(u32, u32, sextant_index::MetaStride, u32, u32) -> core::result::Result<Self, sextant_index::HeaderError>
+pub struct sextant_index::PageLayout
+impl sextant_index::PageLayout
+pub fn sextant_index::PageLayout::code_range_at(&self, u32) -> core::option::Option<core::ops::range::Range<usize>>
+pub const fn sextant_index::PageLayout::code_stride(&self) -> usize
+pub fn sextant_index::PageLayout::max_capacity_for(usize, u32, sextant_index::MetaStride, u32, u32) -> core::option::Option<u32>
+pub const fn sextant_index::PageLayout::meta_stride(&self) -> usize
+pub fn sextant_index::PageLayout::new(&sextant_index::PageHeader) -> core::result::Result<Self, sextant_index::HeaderError>
+pub const fn sextant_index::PageLayout::page_len(&self) -> usize
+pub const fn sextant_index::PageLayout::row_meta_range(&self) -> core::ops::range::Range<usize>
+pub fn sextant_index::PageLayout::row_meta_range_at(&self, u32) -> core::option::Option<core::ops::range::Range<usize>>
+pub const fn sextant_index::PageLayout::run_table_range(&self) -> core::ops::range::Range<usize>
+pub const fn sextant_index::PageLayout::vector_bytes_offset(&self) -> usize
+pub fn sextant_index::PageLayout::vector_range_at(&self, u32) -> core::option::Option<core::ops::range::Range<usize>>
+pub const fn sextant_index::PageLayout::vector_stride(&self) -> usize
+pub struct sextant_index::RowMeta
+impl sextant_index::RowMeta
+pub fn sextant_index::RowMeta::aux(&self, sextant_index::MetaStride) -> &[u8]
+pub fn sextant_index::RowMeta::from_bytes(&[u8], sextant_index::MetaStride) -> core::result::Result<Self, sextant_index::PayloadError>
+pub const fn sextant_index::RowMeta::new(sextant_index::RowPayload, [u8; 8]) -> Self
+pub const fn sextant_index::RowMeta::payload(&self) -> sextant_index::RowPayload
+pub fn sextant_index::RowMeta::write_into(&self, &mut [u8], sextant_index::MetaStride) -> core::result::Result<(), sextant_index::PayloadError>
+pub struct sextant_index::RowPayload(_)
+impl sextant_index::RowPayload
+pub const fn sextant_index::RowPayload::from_raw(u32) -> core::result::Result<Self, sextant_index::PayloadError>
+pub const fn sextant_index::RowPayload::id(self) -> u32
+pub const fn sextant_index::RowPayload::is_tombstone(self) -> bool
+pub const fn sextant_index::RowPayload::new(u32) -> core::option::Option<Self>
+pub const fn sextant_index::RowPayload::raw(self) -> u32
+pub const fn sextant_index::RowPayload::tombstoned(self) -> Self
+pub struct sextant_index::RunEntry
+impl sextant_index::RunEntry
+pub const sextant_index::RunEntry::SIZE: usize
+pub const fn sextant_index::RunEntry::from_bytes([u8; 8]) -> Self
+pub const fn sextant_index::RunEntry::new(u32, u32) -> Self
+pub const fn sextant_index::RunEntry::run_len(self) -> u32
+pub const fn sextant_index::RunEntry::shard_id(self) -> u32
+pub const fn sextant_index::RunEntry::to_bytes(self) -> [u8; 8]
+pub struct sextant_index::Slab<'a, M>
+impl<'a, M: sextant_index::Memory> sextant_index::Slab<'a, M>
+pub fn sextant_index::Slab<'a, M>::append_page(&mut self, &[u8]) -> core::result::Result<u64, sextant_index::SlabError>
+pub const fn sextant_index::Slab<'a, M>::header(&self) -> sextant_index::SlabHeader
+pub const fn sextant_index::Slab<'a, M>::occupied_tail(&self) -> u64
+pub fn sextant_index::Slab<'a, M>::open_or_init(&'a M) -> core::result::Result<Self, sextant_index::SlabError>
+pub struct sextant_index::SlabHeader
+impl sextant_index::SlabHeader
+pub const fn sextant_index::SlabHeader::flags(&self) -> u32
+pub fn sextant_index::SlabHeader::from_bytes(&[u8; 32]) -> core::result::Result<Self, sextant_index::HeaderError>
+pub const fn sextant_index::SlabHeader::new(u64, u32) -> Self
+pub const fn sextant_index::SlabHeader::occupied_tail(&self) -> u64
+pub fn sextant_index::SlabHeader::to_bytes(&self) -> [u8; 32]
+pub struct sextant_index::U8Row<'a>(_)
+impl sextant_index::U8Row<'_>
+pub fn sextant_index::U8Row<'_>::dot(self, &[f32]) -> f32
+pub fn sextant_index::U8Row<'_>::dot_reaching(self, &[f32], sextant_index::DotBound<'_>) -> core::option::Option<f32>
+pub fn sextant_index::U8Row<'_>::l2_squared(self, &[f32]) -> f32
+pub fn sextant_index::U8Row<'_>::l2_squared_within(self, &[f32], f32) -> core::option::Option<f32>
+impl<'a> sextant_index::U8Row<'a>
+pub fn sextant_index::U8Row<'a>::new(&'a [u8], f32) -> Self
+pub struct sextant_index::VecMemory(_)
+impl sextant_index::VecMemory
+pub fn sextant_index::VecMemory::new() -> Self
+impl sextant_index::Memory for sextant_index::VecMemory
+pub fn sextant_index::VecMemory::grow(&self, u64) -> core::result::Result<u64, sextant_index::GrowFailed>
+pub fn sextant_index::VecMemory::read(&self, u64, &mut [u8])
+pub fn sextant_index::VecMemory::size(&self) -> u64
+pub fn sextant_index::VecMemory::write(&self, u64, &[u8])
+pub const sextant_index::FORMAT_VERSION: u8
+pub const sextant_index::MAGIC_PAGE: [u8; 3]
+pub const sextant_index::MAGIC_SLAB: [u8; 3]
+pub const sextant_index::MAX_ROW_ID: u32
+pub const sextant_index::MAX_RUNS: u32
+pub const sextant_index::PAGE_HEADER_SIZE: usize
+pub const sextant_index::PAGE_SIZE: u64
+pub const sextant_index::SLAB_HEADER_SIZE: usize
+pub trait sextant_index::Memory
+pub fn sextant_index::Memory::grow(&self, u64) -> core::result::Result<u64, sextant_index::GrowFailed>
+pub fn sextant_index::Memory::read(&self, u64, &mut [u8])
+pub fn sextant_index::Memory::size(&self) -> u64
+pub fn sextant_index::Memory::write(&self, u64, &[u8])
+impl sextant_index::Memory for sextant_index::VecMemory
+pub fn sextant_index::VecMemory::grow(&self, u64) -> core::result::Result<u64, sextant_index::GrowFailed>
+pub fn sextant_index::VecMemory::read(&self, u64, &mut [u8])
+pub fn sextant_index::VecMemory::size(&self) -> u64
+pub fn sextant_index::VecMemory::write(&self, u64, &[u8])
+pub fn sextant_index::popcount_xnor_words(&[u8], &[u8]) -> u32
+pub fn sextant_index::read_run(&[u8], usize) -> core::option::Option<sextant_index::RunEntry>
+pub fn sextant_index::write_run(&mut [u8], usize, sextant_index::RunEntry) -> core::option::Option<()>

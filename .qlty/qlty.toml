@@ -1,0 +1,30 @@
+# qlty runs code-smell analysis (duplication and complexity) only; clippy and rustfmt run through
+# cargo directly (`just gate`). The gate fails on any finding, so these thresholds are the rule.
+config_version = "0"
+
+# Only the crates are gated, not generated output.
+exclude_patterns = ["**/target/**"]
+
+# Integration tests; unit tests inside `src` are analyzed like the code they test.
+test_patterns = ["crates/*/tests/**"]
+
+[smells]
+mode = "comment"
+
+# [DRY] Defaults are 64 nodes and mass 15; the defaults reported nothing on lara-graph, where these
+# values surfaced six real copies (the same thresholds as lara-graph's).
+[smells.duplication]
+nodes_threshold = 30
+
+[smells.identical_code]
+threshold = 10
+
+[smells.similar_code]
+threshold = 10
+
+# Small functions are what keep the rest reviewable. Defaults are 18 and 5.
+[smells.function_complexity]
+threshold = 12
+
+[smells.nested_control_flow]
+threshold = 4

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Format and lints before every commit: a few seconds, as clippy rechecks only what changed.
+# The rest of the gate runs before a push (pre-push) and in CI. Enable with `just hooks`.
+set -e
+just fmt clippy

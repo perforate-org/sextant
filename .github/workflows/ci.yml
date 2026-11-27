@@ -1,0 +1,63 @@
+# The gate on every push and pull request, Kani's proofs and mutation testing.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    name: Gate (fmt, clippy, wasm, test, doc, deslop, smells)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, rust-analyzer
+          targets: wasm32-unknown-unknown
+      # Rustdoc JSON for the public API snapshot needs the nightly `tests/public_api.rs` names.
+      - run: rustup toolchain install nightly-2026-10-26 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - run: cargo install --locked deslop-please@0.1.4
+      - name: Install qlty
+        run: |
+          curl -fsSL https://qlty.sh | bash
+          echo "$HOME/.qlty/bin" >> "$GITHUB_PATH"
+      - run: just gate
+      # The crate is `no_std` + `alloc`: it builds for a target without std.
+      - run: rustup target add thumbv7em-none-eabihf && cargo build -p sextant-index --target thumbv7em-none-eabihf
+
+  kani:
+    name: Kani proofs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: model-checking/kani-github-action@v1
+        with:
+          kani-version: "0.67.0"
+          args: -p sextant-index
+
+  mutants:
+    name: Mutation testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+      # Exit 3 is timeouts only: those mutants hung the suite, so the tests noticed them.
+      - run: cargo mutants -p sextant-index --test-tool cargo || [ $? -eq 3 ]
