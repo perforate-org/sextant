@@ -55,9 +55,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
+      # The public API snapshot test runs in every mutant's suite and needs the same nightly.
+      - run: rustup toolchain install nightly-2026-10-26 --profile minimal
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-mutants
       # Exit 3 is timeouts only: those mutants hung the suite, so the tests noticed them.
-      - run: cargo mutants -p sextant-index --test-tool cargo || [ $? -eq 3 ]
+      - run: cargo mutants -p sextant-index --test-tool cargo --all-features || [ $? -eq 3 ]

@@ -6,7 +6,6 @@
     clippy::float_arithmetic,
     clippy::as_conversions,
     clippy::cast_possible_wrap,
-    clippy::float_cmp,
     clippy::indexing_slicing,
     reason = "reference sums in f64 over small generated inputs; exact values by hand"
 )]
@@ -71,6 +70,36 @@ fn small_rows_by_hand() {
 }
 
 #[test]
+fn l2_exits_once_the_sum_exceeds_the_threshold() {
+    // Two f32 blocks; the whole distance (30) is in the first.
+    let row = f32_bytes(&[1.0, 2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0]);
+    let row = F32Row::new(&row);
+    let query = [0.0; 8];
+    assert_eq!(row.l2_squared_within(&query, 30.0), Some(30.0));
+    assert_eq!(row.l2_squared_within(&query, 29.5), None);
+}
+
+#[test]
+fn dot_exits_where_the_bound_says() {
+    // Nine components: two f32 blocks, checked together after the second, then a tail. After
+    // one block the bound is 4 + √5; after two it is 0 + 1.
+    let row = f32_bytes(&[1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0]);
+    let row = F32Row::new(&row);
+    let query = [1.0; 9];
+    let norms = suffix_norms(&query);
+    assert_eq!(row.dot_reaching(&query, DotBound::unit(&norms, 1.5)), None);
+    assert_eq!(
+        row.dot_reaching(&query, DotBound::unit(&norms, 0.5)),
+        Some(-1.0)
+    );
+    // The row norm scales the remaining contribution.
+    assert_eq!(
+        row.dot_reaching(&query, DotBound::new(&norms, 2.0, 1.5)),
+        Some(-1.0)
+    );
+}
+
+#[test]
 fn lengths_are_the_shorter_of_row_and_query() {
     let row = f32_bytes(&[1.0; 40]);
     let short = [2.0f32; 7];
@@ -110,6 +139,8 @@ fn popcount_counts_matching_bits() {
     assert_eq!(popcount_xnor_words(&[0; 8], &[0; 8]), 64);
     assert_eq!(popcount_xnor_words(&[0xFF; 8], &[0; 8]), 0);
     assert_eq!(popcount_xnor_words(&[0x0F; 16], &[0; 16]), 64);
+    assert_eq!(popcount_xnor_words(&[0xFF; 8], &[0xFF; 8]), 64);
+    assert_eq!(popcount_xnor_words(&[0x0F; 8], &[0x3C; 8]), 32);
     // A partial trailing word and the longer span's extra words are ignored.
     assert_eq!(popcount_xnor_words(&[0; 12], &[0; 20]), 64);
 }

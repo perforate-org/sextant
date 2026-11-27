@@ -48,13 +48,10 @@ array_backend! {
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Lanes(Repr);
 
-simd_backend! {
-    impl Lanes {
-        /// Every lane zero.
-        pub(super) fn zero() -> Self {
-            Self::splat(0.0)
-        }
-
+/// The methods both backends share, built on `from_array` and `to_array`; expanded into each
+/// backend's `impl` so `Lanes` keeps one inherent impl per configuration.
+macro_rules! shared_methods {
+    () => {
         /// Lanes `l0 + l1 + l2 + l3`, added left to right.
         pub(super) fn sum(self) -> f32 {
             let [l0, l1, l2, l3] = self.to_array();
@@ -64,7 +61,22 @@ simd_backend! {
         /// Lanes from four little-endian `f32`s.
         pub(super) const fn from_le_bytes(bytes: [u8; 16]) -> Self {
             let [
-                b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15,
+                b0,
+                b1,
+                b2,
+                b3,
+                b4,
+                b5,
+                b6,
+                b7,
+                b8,
+                b9,
+                b10,
+                b11,
+                b12,
+                b13,
+                b14,
+                b15,
             ] = bytes;
             Self::from_array([
                 f32::from_le_bytes([b0, b1, b2, b3]),
@@ -72,6 +84,17 @@ simd_backend! {
                 f32::from_le_bytes([b8, b9, b10, b11]),
                 f32::from_le_bytes([b12, b13, b14, b15]),
             ])
+        }
+    };
+}
+
+simd_backend! {
+    impl Lanes {
+        shared_methods!();
+
+        /// Every lane zero.
+        pub(super) fn zero() -> Self {
+            Self::splat(0.0)
         }
 
         pub(super) fn splat(value: f32) -> Self {
@@ -142,28 +165,11 @@ simd_backend! {
 
 array_backend! {
     impl Lanes {
+        shared_methods!();
+
         /// Every lane zero.
         pub(super) const fn zero() -> Self {
             Self::splat(0.0)
-        }
-
-        /// Lanes `l0 + l1 + l2 + l3`, added left to right.
-        pub(super) fn sum(self) -> f32 {
-            let [l0, l1, l2, l3] = self.to_array();
-            l0 + l1 + l2 + l3
-        }
-
-        /// Lanes from four little-endian `f32`s.
-        pub(super) const fn from_le_bytes(bytes: [u8; 16]) -> Self {
-            let [
-                b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15,
-            ] = bytes;
-            Self::from_array([
-                f32::from_le_bytes([b0, b1, b2, b3]),
-                f32::from_le_bytes([b4, b5, b6, b7]),
-                f32::from_le_bytes([b8, b9, b10, b11]),
-                f32::from_le_bytes([b12, b13, b14, b15]),
-            ])
         }
 
         pub(super) const fn splat(value: f32) -> Self {

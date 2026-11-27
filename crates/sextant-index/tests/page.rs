@@ -65,6 +65,8 @@ fn headers_fail_closed() {
         Err(HeaderError::InvalidMetaStride { found: 6 })
     );
     let mut runs = good;
+    runs[20..24].copy_from_slice(&1u32.to_le_bytes());
+    assert!(PageHeader::from_bytes(&runs).is_ok_and(|full| full.run_count() == 1));
     runs[20..24].copy_from_slice(&2u32.to_le_bytes());
     assert_eq!(
         PageHeader::from_bytes(&runs),
@@ -110,7 +112,7 @@ fn headers_fail_closed() {
     assert!(header.set_run_count(2).is_ok());
     assert_eq!(header.run_count(), 2);
     for error in [HeaderError::ZeroCapacity, HeaderError::SpanOverflow] {
-        assert!(!error.to_string().is_empty());
+        assert_ne!(error.to_string(), "");
     }
 }
 
@@ -152,6 +154,7 @@ fn row_metas_and_payloads() {
     let dead = payload.tombstoned();
     assert!(dead.is_tombstone());
     assert_eq!(dead.id(), MAX_ROW_ID);
+    assert_eq!(dead.tombstoned(), dead);
     assert_eq!(
         RowPayload::from_raw(1 << 30),
         Err(PayloadError::ReservedBitSet { raw: 1 << 30 })
@@ -187,6 +190,18 @@ fn row_metas_and_payloads() {
         );
     }
     assert_eq!(MetaStride::for_aux(2), None);
+    assert_eq!(
+        PayloadError::BadSliceLength {
+            expected: 8,
+            found: 3
+        }
+        .to_string(),
+        "row meta of 3 bytes; the stride is 8"
+    );
+    assert_eq!(
+        PayloadError::ReservedBitSet { raw: 1 << 30 }.to_string(),
+        "row payload 0x40000000 sets the reserved bit"
+    );
 }
 
 #[test]
@@ -223,6 +238,41 @@ fn slab_appends_and_reopens() {
     assert_eq!(Slab::open_or_init(&fresh).unwrap().occupied_tail(), 32);
 }
 
+/// A memory that never grows.
+struct Fixed(VecMemory);
+
+impl Memory for Fixed {
+    fn size(&self) -> u64 {
+        self.0.size()
+    }
+
+    fn grow(&self, pages: u64) -> Result<u64, GrowFailed> {
+        Err(GrowFailed::new(self.0.size(), pages))
+    }
+
+    fn read(&self, offset: u64, buf: &mut [u8]) {
+        self.0.read(offset, buf);
+    }
+
+    fn write(&self, offset: u64, buf: &[u8]) {
+        self.0.write(offset, buf);
+    }
+}
+
+#[test]
+fn slab_grows_only_past_the_end() {
+    let inner = VecMemory::new();
+    let _ = inner.grow(1).unwrap();
+    let memory = Fixed(inner);
+    let mut slab = Slab::open_or_init(&memory).unwrap();
+    let fits = usize::try_from(PAGE_SIZE - 32).unwrap();
+    assert_eq!(slab.append_page(&vec![1; fits]).unwrap(), 32);
+    assert_eq!(
+        slab.append_page(&[1]),
+        Err(SlabError::Grow(GrowFailed::new(1, 1)))
+    );
+}
+
 #[test]
 fn slab_headers_fail_closed() {
     let memory = VecMemory::new();
@@ -252,8 +302,8 @@ fn slab_headers_fail_closed() {
         error.to_string(),
         "memory could not grow by 2 pages from 1 pages"
     );
-    assert_eq!(GrowFailed::new(1, 2).current_pages(), 1);
-    assert_eq!(GrowFailed::new(1, 2).requested_pages(), 2);
+    assert_eq!(GrowFailed::new(3, 2).current_pages(), 3);
+    assert_eq!(GrowFailed::new(3, 2).requested_pages(), 2);
 }
 
 proptest! {

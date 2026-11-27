@@ -3,7 +3,7 @@ name = "sextant-index"
 version.workspace = true
 edition.workspace = true
 description = "Vector index physical layer: a self-describing page format for fixed-stride rows on paged memory, and distance kernels (L2, dot, early exit) over f32, i8 and u8 rows with wasm SIMD."
-repository = "https://github.com/perforate-org/sextant-index"
+repository = "https://github.com/perforate-org/sextant"
 keywords = ["vector", "ann", "simd", "wasm", "no-std"]
 categories = ["data-structures", "algorithms", "no-std"]
 license = "MIT OR Apache-2.0"
@@ -37,3 +37,7 @@ name = "page"
 
 [[test]]
 name = "public_api"
+
+[[test]]
+name = "stable_structures"
+required-features = ["ic-stable-structures"]
