@@ -84,11 +84,11 @@ impl<'a> F32Row<'a> {
         let dims = self.0.dims().min(query.len());
         let blocks = whole_blocks::<1>(dims);
         let (mut dot, mut norm) = (Lanes::zero(), Lanes::zero());
-        for block in 0..blocks {
-            if let (Some([v]), Some([q])) = (self.0.lanes(block), query_lanes::<1>(query, block)) {
-                dot = dot.add(v.mul(q));
-                norm = norm.add(v.mul(v));
-            }
+        let queries = query.as_chunks::<4>().0.iter();
+        for (chunk, q) in self.0.chunks().iter().zip(queries) {
+            let ([v], q) = (self.0.lanes(chunk), Lanes::from_array(*q));
+            dot = dot.add(v.mul(q));
+            norm = norm.add(v.mul(v));
         }
         tail::<1, _>(self.0, query, blocks, dims)
             .fold((dot.sum(), norm.sum()), |(dot, norm), (v, q)| {
@@ -203,12 +203,16 @@ impl Metric {
     }
 
     /// The contribution of one block: its lanes' terms added right to left.
+    ///
+    /// A loop over positions rather than an iterator chain: once inlined it unrolls to the adds
+    /// alone, where `zip`/`rev`/`reduce` over array iterators stayed a call with its own loops.
     fn block<const N: usize>(self, v: [Lanes; N], q: [Lanes; N]) -> Option<Lanes> {
-        v.into_iter()
-            .zip(q)
-            .map(|(v, q)| self.term(v, q))
-            .rev()
-            .reduce(|right, term| term.add(right))
+        let mut sum: Option<Lanes> = None;
+        for (v, q) in v.iter().zip(&q).rev() {
+            let term = self.term(*v, *q);
+            sum = Some(sum.map_or(term, |right| term.add(right)));
+        }
+        sum
     }
 }
 
@@ -222,14 +226,6 @@ fn whole_blocks<const N: usize>(dims: usize) -> usize {
     dims.checked_div(block_dims::<N>()).unwrap_or(0)
 }
 
-/// Block `block` of `query` as `N` lanes.
-fn query_lanes<const N: usize>(query: &[f32], block: usize) -> Option<[Lanes; N]> {
-    let start = block.checked_mul(block_dims::<N>())?;
-    let span = query.get(start..start.checked_add(block_dims::<N>())?)?;
-    let lanes: &[[f32; 4]; N] = span.as_chunks::<4>().0.try_into().ok()?;
-    Some(lanes.map(Lanes::from_array))
-}
-
 /// The `(row, query)` component pairs past the first `blocks` whole blocks, up to `dims`.
 fn tail<'q, const N: usize, E: Encoding<N> + 'q>(
     row: E,
@@ -241,36 +237,51 @@ fn tail<'q, const N: usize, E: Encoding<N> + 'q>(
     (start..dims).filter_map(move |index| Some((row.component(index)?, *query.get(index)?)))
 }
 
-/// The contribution of block `block`.
-fn block<const N: usize, E: Encoding<N>>(
-    row: E,
-    query: &[f32],
-    block: usize,
+/// The terms of every whole block the row and the query both have, in order.
+///
+/// Walks both as chunk iterators: fetching a block by index instead costs a bounds check and an
+/// `Option` per side, every block.
+fn block_terms<'a, const N: usize, E: Encoding<N>>(
+    row: &'a E,
+    query: &'a [f32],
     metric: Metric,
-) -> Option<Lanes> {
-    metric.block(row.lanes(block)?, query_lanes::<N>(query, block)?)
+) -> impl Iterator<Item = Lanes> + 'a {
+    let queries = query.as_chunks::<4>().0.as_chunks::<N>().0.iter();
+    row.chunks()
+        .iter()
+        .zip(queries)
+        .filter_map(move |(chunk, lanes)| {
+            metric.block(row.lanes(chunk), lanes.map(Lanes::from_array))
+        })
 }
 
-/// Sums blocks `0..blocks` into two alternating accumulators, calling `check` with them after
-/// each one; stops with `None` when `check` does.
+/// Sums the whole blocks into two alternating accumulators, calling `check` with the blocks done
+/// and both accumulators after every `period` blocks (an even count; 0 never checks); stops with
+/// `None` when `check` does.
 fn accumulate<const N: usize, E: Encoding<N>>(
     row: E,
     query: &[f32],
-    blocks: usize,
     metric: Metric,
+    period: usize,
     mut check: impl FnMut(usize, Lanes, Lanes) -> bool,
 ) -> Option<(Lanes, Lanes)> {
     let (mut even, mut odd) = (Lanes::zero(), Lanes::zero());
-    for index in 0..blocks {
-        if let Some(contribution) = block::<N, E>(row, query, index, metric) {
-            if index.is_multiple_of(2) {
-                even = even.add(contribution);
-            } else {
-                odd = odd.add(contribution);
+    let mut terms = block_terms::<N, E>(&row, query, metric);
+    // Two blocks a round, one per accumulator, and the check only when it is due: a parity test
+    // and a remainder every block cost about a fifth of an `f32` kernel.
+    let (mut done, mut due) = (0usize, period);
+    while let Some(first) = terms.next() {
+        even = even.add(first);
+        let Some(second) = terms.next() else {
+            break;
+        };
+        odd = odd.add(second);
+        done = done.saturating_add(2);
+        if done == due {
+            if !check(done, even, odd) {
+                return None;
             }
-        }
-        if !check(index.saturating_add(1), even, odd) {
-            return None;
+            due = due.saturating_add(period);
         }
     }
     Some((even, odd))
@@ -279,7 +290,7 @@ fn accumulate<const N: usize, E: Encoding<N>>(
 fn full<const N: usize, E: Encoding<N>>(row: E, query: &[f32], metric: Metric) -> f32 {
     let dims = row.dims().min(query.len());
     let blocks = whole_blocks::<N>(dims);
-    let total = accumulate::<N, E>(row, query, blocks, metric, |_, _, _| true)
+    let total = accumulate::<N, E>(row, query, metric, 0, |_, _, _| true)
         .map_or(0.0, |(even, odd)| E::TOTAL.combine(even, odd));
     tail::<N, E>(row, query, blocks, dims).fold(total, |sum, (v, q)| sum + metric.scalar(v, q))
 }
@@ -289,8 +300,8 @@ fn l2_within<const N: usize, E: Encoding<N>>(row: E, query: &[f32], threshold: f
     let dims = row.dims().min(query.len());
     let blocks = whole_blocks::<N>(dims);
     let mut sum = 0.0;
-    for index in 0..blocks {
-        sum += block::<N, E>(row, query, index, metric).map_or(0.0, Lanes::sum);
+    for contribution in block_terms::<N, E>(&row, query, metric) {
+        sum += contribution.sum();
         if sum > threshold {
             return None;
         }
@@ -317,12 +328,11 @@ fn dot_reaching<const N: usize, E: Encoding<N>>(
     // Checked after every `period` blocks (an even count, about an eighth of the row), so the
     // full path stays close to `dot` when the exit never triggers.
     let period = blocks.checked_div(8).unwrap_or(0).max(1).saturating_mul(2);
-    let (even, odd) = accumulate::<N, E>(row, query, blocks, metric, |done, even, odd| {
-        !done.is_multiple_of(period)
-            || bound.reachable(
-                Total::Grouped.combine(even, odd),
-                done.saturating_mul(block_dims::<N>()),
-            )
+    let (even, odd) = accumulate::<N, E>(row, query, metric, period, |done, even, odd| {
+        bound.reachable(
+            Total::Grouped.combine(even, odd),
+            done.saturating_mul(block_dims::<N>()),
+        )
     })?;
     let sum = tail::<N, E>(row, query, blocks, dims)
         .fold(Total::Grouped.combine(even, odd), |sum, (v, q)| sum + v * q);

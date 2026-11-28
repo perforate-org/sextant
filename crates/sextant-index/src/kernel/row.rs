@@ -37,8 +37,11 @@ pub(super) trait Encoding<const N: usize>: Copy {
     /// Components the row stores.
     fn dims(&self) -> usize;
 
-    /// Block `block`, dequantized; `None` past the row.
-    fn lanes(&self, block: usize) -> Option<[Lanes; N]>;
+    /// The row's whole blocks, 16 bytes each.
+    fn chunks(&self) -> &[[u8; 16]];
+
+    /// One block, dequantized.
+    fn lanes(&self, chunk: &[u8; 16]) -> [Lanes; N];
 
     /// Component `index`, dequantized; `None` past the row.
     fn component(&self, index: usize) -> Option<f32>;
@@ -61,9 +64,12 @@ impl Encoding<1> for F32<'_> {
         self.0.as_chunks::<4>().0.len()
     }
 
-    fn lanes(&self, block: usize) -> Option<[Lanes; 1]> {
-        let chunk = self.0.as_chunks::<16>().0.get(block)?;
-        Some([Lanes::from_le_bytes(*chunk)])
+    fn chunks(&self) -> &[[u8; 16]] {
+        self.0.as_chunks::<16>().0
+    }
+
+    fn lanes(&self, chunk: &[u8; 16]) -> [Lanes; 1] {
+        [Lanes::from_le_bytes(*chunk)]
     }
 
     fn component(&self, index: usize) -> Option<f32> {
@@ -99,10 +105,13 @@ impl Encoding<4> for I8<'_> {
         self.bytes.len()
     }
 
-    fn lanes(&self, block: usize) -> Option<[Lanes; 4]> {
-        let chunk = self.bytes.as_chunks::<16>().0.get(block)?;
+    fn chunks(&self) -> &[[u8; 16]] {
+        self.bytes.as_chunks::<16>().0
+    }
+
+    fn lanes(&self, chunk: &[u8; 16]) -> [Lanes; 4] {
         let k = Lanes::splat(self.k);
-        Some(Lanes::widen_i8(*chunk).map(|lanes| lanes.mul(k)))
+        Lanes::widen_i8(*chunk).map(|lanes| lanes.mul(k))
     }
 
     fn component(&self, index: usize) -> Option<f32> {
@@ -137,11 +146,14 @@ impl Encoding<4> for U8<'_> {
         self.bytes.len()
     }
 
-    fn lanes(&self, block: usize) -> Option<[Lanes; 4]> {
-        let chunk = self.bytes.as_chunks::<16>().0.get(block)?;
+    fn chunks(&self) -> &[[u8; 16]] {
+        self.bytes.as_chunks::<16>().0
+    }
+
+    fn lanes(&self, chunk: &[u8; 16]) -> [Lanes; 4] {
         let k = Lanes::splat(self.k);
         let offset = Lanes::splat(128.0 * self.k);
-        Some(Lanes::widen_u8(*chunk).map(|lanes| lanes.mul(k).sub(offset)))
+        Lanes::widen_u8(*chunk).map(|lanes| lanes.mul(k).sub(offset))
     }
 
     fn component(&self, index: usize) -> Option<f32> {
